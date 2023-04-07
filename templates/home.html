@@ -1,20 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
+    <title>Secure PGM Home Page</title>
+    <style>
+        /* Add CSS styles here */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 0;
+        }
+    .container {
+        width: 80%;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+        margin-top: 0;
+    }
+
+    ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    li {
+        margin-bottom: 10px;
+    }
+
+    a {
+        text-decoration: none;
+        color: #333;
+        font-weight: bold;
+    }
+
+    a:hover {
+        color: #007bff;
+    }
+
+    .alert {
+        padding: 10px;
+        background-color: #007bff;
+        color: #fff;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+</style>
 </head>
-
 <body>
-    <h1>Secure PGM Home page.</h1>
-    <a href="{{ url_for('login') }}">Login Page</a><br>
-    <a href="{{ url_for('register') }}">Register Page</a><br>
-    <a href="{{ url_for('admin_login') }}">Admin Login Page</a><br>
-    <a href="{{ url_for('admin_register') }}">Admin Register Page</a><br>
-
+    <!-- Flash messages -->
+    {% for message in get_flashed_messages() %}
+    <div class="alert">
+        {{ message }}
+    </div>
+    {% endfor %}
+<!-- Main content -->
+<div class="container">
+    <h1>Secure PGM Home Page</h1>
+    <ul>
+        <li><a href="{{ url_for('login') }}">Login Page</a></li>
+        <li><a href="{{ url_for('register') }}">Register Page</a></li>
+        <li><a href="{{ url_for('admin_login') }}">Admin Login Page</a></li>
+        <li><a href="{{ url_for('admin_register') }}">Admin Register Page</a></li>
+    </ul>
+</div>
 </body>
-
 </html>

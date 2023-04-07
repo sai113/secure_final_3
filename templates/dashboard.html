@@ -6,27 +6,103 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
+    <style>
+      * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: #f8f8f8;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px;
+}
+
+.heading {
+    margin-bottom: 40px;
+    text-align: center;
+}
+
+.group-section {
+    margin-bottom: 20px;
+}
+
+.group-section h2 {
+    margin-bottom: 10px;
+}
+
+.group-section a {
+    display: block;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #fff;
+    color: #333;
+    text-decoration: none;
+}
+
+.group-section a:hover {
+    background-color: #333;
+    color: #fff;
+}
+
+.logout-section {
+    text-align: center;
+}
+
+.logout-section a {
+    display: inline-block;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #fff;
+    color: #333;
+    text-decoration: none;
+}
+
+.logout-section a:hover {
+    background-color: #333;
+    color: #fff;
+}
+
+    </style>
 </head>
 
 <body>
-    <h1>Login is complete.</h1>
-    
-    <h2>Group Image.</h2>
-    <a href="{{url_for('group_images')}}">group images</a><br>
-    <h2>Group File</h2>
-    <a href="{{url_for('group_files')}}">group files</a><br>
-    <br>
-    <br>
-    <br>
-    <br>
-    <br>
-    <br>
-    <br>
-    <br>
-    <br>
-    <br>
-    <a href="{{url_for('logout')}}">Press here to logout</a><br>
+    <div class="container">
+        {% for message in get_flashed_messages() %}
+        <div class="alert alert-info">
+            {{ message }}
+        </div>
+        {% endfor %}
 
+        <h1 class="heading">Login is complete.</h1>
+
+        <div class="group-section">
+            <h2>Group Image.</h2>
+            <a href="{{url_for('group_images')}}">group images</a>
+        </div>
+
+        <div class="group-section">
+            <h2>Group File</h2>
+            <a href="{{url_for('group_files')}}">group files</a>
+        </div>
+
+        <div class="group-section">
+            <h2>Group Post</h2>
+            <a href="{{url_for('display_all_post')}}">Display post</a>
+            <a href="{{url_for('post_upload')}}"> Upload Post</a>
+        </div>
+
+        <div class="logout-section">
+            <a href="{{url_for('logout')}}">Click here to logout</a>
+        </div>
+    </div>
 </body>
 
 </html>

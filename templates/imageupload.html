@@ -18,9 +18,16 @@
       </style>
 </head>
 <body>
+  {% for message in get_flashed_messages() %}
+  <div class="alert alert-info">
+     {{ message }}
+
+   </div>
+ {% endfor %}
     <div class="center">
         <form method="POST" action="/imageupload" enctype="multipart/form-data">
             <input type="file" name="file">
+            {{ form.comment }}
             <button>Submit</button>
         </form>
         <a href="{{ url_for('dashboard') }}">back to dashboard</a>

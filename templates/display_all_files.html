@@ -5,7 +5,7 @@
         {% for file in files %}
             <ul>
                 <li>
-                    {{file.filename}} | <a href={{url_for('download', upload_id = file.id)  }}>Download</a>
+                    <b> file name   :  </b>  {{file.filename}} | <b> file description   :  </b>  {{file.comment}}| <a href={{url_for('download', upload_id = file.id)  }}>Download</a>  |  | <form method="POST" action="/deletefiles/{{file.id}}"><button>delete</button></form>
 
                 </li>
             </ul>

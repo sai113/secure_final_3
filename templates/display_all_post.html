@@ -1,0 +1,16 @@
+{% block content %}
+<title>All availables files</title>
+
+    <div>
+        {% for file in files %}
+            <ul>
+                <li>
+                     <b> comment   :  </b> {{file.comment}} | |<form method="POST" action="/deletepost/{{file.id}}"><button>delete</button></form>
+
+                </li>
+            </ul>
+        {% endfor %}
+        <a href="{{ url_for('dashboard') }}">back to dashboard</a>
+    </div>
+   
+{% endblock content %}

@@ -1,24 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-</head>
+    <title>User Login</title>
+    <style>
+        /* Add CSS styles here */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 0;
+        }
+    .container {
+        width: 50%;
+        margin: 50px auto;
+        padding: 20px;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
 
+    h1 {
+        margin-top: 0;
+        text-align: center;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 20px;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 20px;
+        border: none;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    input[type="submit"] {
+        background-color: #007bff;
+        color: #fff;
+        padding: 10px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    input[type="submit"]:hover {
+        background-color: #0062cc;
+    }
+
+    a {
+        text-decoration: none;
+        color: #007bff;
+        font-weight: bold;
+    }
+
+    a:hover {
+        color: #0056b3;
+    }
+
+    .alert {
+        padding: 10px;
+        background-color: #007bff;
+        color: #fff;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+</style>
+</head>
 <body>
-    <h1>User Login Page</h1>
+    <!-- Flash messages -->
+    {% for message in get_flashed_messages() %}
+    <div class="alert">
+        {{ message }}
+    </div>
+    {% endfor %}
+<!-- Main content -->
+<div class="container">
+    <h1>User Login</h1>
     <form method="POST" action="">
         {{ form.hidden_tag() }}
+        <label for="username">Username:</label>
         {{ form.username }}
+        <label for="password">Password:</label>
         {{ form.password }}
-        {{ form.submit }}
+        <input type="submit" value="Login">
     </form>
     <br>
-    <a href="{{ url_for('register') }}">Don't have an account? Sign Up</a><br>
-    <a href="{{ url_for('home') }}">back to home page</a><br>
+    <p>Don't have an account? <a href="{{ url_for('register') }}">Sign Up</a></p>
+    <p><a href="{{ url_for('home') }}">Back to Home Page</a></p>
+</div>
 </body>
-
 </html>

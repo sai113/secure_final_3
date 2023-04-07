@@ -9,6 +9,12 @@
 </head>
 
 <body>
+    {% for message in get_flashed_messages() %}
+    <div class="alert alert-info">
+       {{ message }}
+
+     </div>
+   {% endfor %}
     <h1>Admin key generate Page</h1>
 
     <form method="POST" action="">

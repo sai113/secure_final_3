@@ -17,10 +17,9 @@ https://www.youtube.com/watch?v=3rr3pGX7OsY&t=0s
 https://www.youtube.com/watch?v=mS89iL1RHgU&t=0s
 https://www.youtube.com/watch?v=OczLouzgJSc&t=0s
 https://www.youtube.com/watch?v=v6b4tggM7M0&t=0s
-
 """
 
-
+from sqlalchemy import delete
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask
 from flask import render_template,flash
@@ -30,6 +29,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import InputRequired, Length, ValidationError
 from flask_bcrypt import Bcrypt
+#import os
 from io import BytesIO
 from flask import request, send_file
 import sqlite3
@@ -45,9 +45,12 @@ ALLOWED_EXTENSIONS_AUDIO = {'mp3', 'aac', 'flac'}
 HTTP_404_NOT_FOUND  = 404
 HTTP_500_INTERNAL_SERVER_ERROR = 500
 
+#file_path = os.path.abspath(os.getcwd())+"\database.db"
 app = Flask(__name__)
 
 bcrypt = Bcrypt(app)
+
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'+file_path
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SECRET_KEY'] = 'SXS9376KEY'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
@@ -57,10 +60,6 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
 
 #table for user
 class User(db.Model, UserMixin):
@@ -79,17 +78,28 @@ class adminkey(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(20), nullable=False, unique=True)
 
+class post(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    comment = db.Column(db.String(200), nullable=False)
+
+
+class groupfiles(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(20))
+
 #table upload files
 class Upload(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     filename = db.Column(db.String(50))
     data = db.Column(db.LargeBinary)
+    comment = db.Column(db.String(80))
 
 #table imape upload
 class Imageupload(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     imagename = db.Column(db.String(50))
     data = db.Column(db.LargeBinary)
+    comment = db.Column(db.String(80))
     #file_description =db.Column(db.String(80))
 
 #table group
@@ -120,14 +130,22 @@ class AdminRegisterForm(FlaskForm):
     admin_key = StringField(validators=[InputRequired(), Length(min=8, max=8)], render_kw={"placeholder": "ADMIN KEY"})
     submit = SubmitField('Register')
 
-    def validate_username(self, username):
-        existing_user_username = User.query.filter_by(username=username.data).first()
-        if existing_user_username:
-            raise ValidationError('user name not unique')
+
+class CommentForm(FlaskForm):
+    comment = StringField(validators=[InputRequired(), Length(min=1, max=80)], render_kw={"placeholder": "comment"})
+
+class PostCommentForm(FlaskForm):
+    comment = StringField(validators=[InputRequired(), Length(min=1, max=200)], render_kw={"placeholder": "comment"})
+
 
 class AdminKeyForm(FlaskForm):
     admin_key = StringField(validators=[InputRequired(), Length(min=8, max=8)], render_kw={"placeholder": "ADMIN KEY"})
     submit = SubmitField('Generate')
+
+
+class GroupFilesForm(FlaskForm):
+    username = StringField(validators=[InputRequired(), Length(min=4, max=80)], render_kw={"placeholder": "username"})
+    submit = SubmitField('add user')
 
 class LoginForm(FlaskForm):
     username = StringField(validators=[
@@ -141,42 +159,51 @@ class LoginForm(FlaskForm):
 @app.route('/')
 def home():
     return render_template('home.html')
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(user_id)
 
 #login page 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
-        if user:
-            if bcrypt.check_password_hash(user.password, form.password.data):
-                login_user(user)
-                print("Login Succesfull!!")
-                return redirect(url_for('dashboard'))
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            user = User.query.filter_by(username=form.username.data).first()
+            if user:
+                if bcrypt.check_password_hash(user.password, form.password.data):
+                    login_user(user)
+                    print("Login Succesfull!!")
+                    return redirect(url_for('dashboard'))
+                else:
+                    #jsonify({'internal server error': 'return back to login page'}), HTTP_500_INTERNAL_SERVER_ERROR
+                    flash("Wrong Password")
             else:
-                jsonify({'internal server error': 'return back to login page'}), HTTP_500_INTERNAL_SERVER_ERROR
-                flash("Wrong Password - Try Again!")
+                flash("That User Doesn't Exist!")
         else:
-            flash("That User Doesn't Exist! Try Again...")
+            flash("error occured!, try again")
     return render_template('login.html', form=form)
 
 #admin login page
 @app.route('/admin_login', methods=['GET', 'POST'])
 def admin_login():
     form = LoginForm()
-    if form.validate_on_submit():
-        auser = adminuser.query.filter_by(username=form.username.data).first()
-        if auser:
-            if bcrypt.check_password_hash(auser.password, form.password.data):
-                login_user(auser)
-                print("Login Succesfull!!")
-                return redirect(url_for('admin_dashboard'))
-                
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            auser = adminuser.query.filter_by(username=form.username.data).first()
+            if auser:
+                if bcrypt.check_password_hash(auser.password, form.password.data):
+                    login_user(auser)
+                    print("Login Succesfull!!")
+                    return redirect(url_for('admin_dashboard'))
+                    
+                else:
+                    #jsonify({'internal server error': 'return back to login page'}), HTTP_500_INTERNAL_SERVER_ERROR
+                    flash("Wrong Password - Try Again!")
             else:
-                jsonify({'internal server error': 'return back to login page'}), HTTP_500_INTERNAL_SERVER_ERROR
-                flash("Wrong Password - Try Again!")
+                flash("That User Doesn't Exist! Try Again...")
         else:
-            flash("That User Doesn't Exist! Try Again...")
+            flash("error occured!, try again")
     return render_template('admin_login.html', form=form)
 
 #register
@@ -184,13 +211,16 @@ def admin_login():
 def register():
     form = RegisterForm()
     print(form)
-    if form.validate_on_submit():
-        hashed_password = bcrypt.generate_password_hash(form.password.data)
-        new_user = User(username=form.username.data, password=hashed_password)
-        db.session.add(new_user)
-        db.session.commit()
-        flash('You are now registered and can log in', 'success')
-        return redirect(url_for('login'))
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            hashed_password = bcrypt.generate_password_hash(form.password.data)
+            new_user = User(username=form.username.data, password=hashed_password)
+            db.session.add(new_user)
+            db.session.commit()
+            flash('You are now registered and can log in', 'success')
+            return redirect(url_for('login'))
+        else:
+            flash('username already used')
     return render_template('register.html', form=form)
 
 #admin register
@@ -198,24 +228,28 @@ def register():
 def admin_register():
     form = AdminRegisterForm()
     auser = adminkey.query.filter_by(key=form.admin_key.data).first()
-    print(auser,"wetsfd")
-    if auser:
-        if form.validate_on_submit():
-            hashed_password = bcrypt.generate_password_hash(form.password.data)
-            #add to admin table
-            new_user = adminuser(username=form.username.data, password=hashed_password)
-            print("hellosss",new_user)
-            db.session.add(new_user)
-            db.session.commit()
-            #add to user table
-            new_user = User(username=form.username.data, password=hashed_password)
-            print(new_user)
-            db.session.add(new_user)
-            db.session.commit()
-            print('You are now registered and can log in', 'success')
-            flash('You are now registered and can log in', 'success')
-            return redirect(url_for('admin_login'))
-        return render_template('admin_register.html', form=form)
+    if request.method == 'POST':
+        if auser:
+            if form.validate_on_submit():
+                hashed_password = bcrypt.generate_password_hash(form.password.data)
+                #add to admin table
+                new_user = adminuser(username=form.username.data, password=hashed_password)
+                print("hellosss",new_user)
+                db.session.add(new_user)
+                db.session.commit()
+                #add to user table
+                new_user = User(username=form.username.data, password=hashed_password)
+                print(new_user)
+                db.session.add(new_user)
+                db.session.commit()
+                print('You are now registered and can log in', 'success')
+                flash('You are now registered and can log in', 'success')
+                return redirect(url_for('admin_login'))
+            else:
+                flash('username already used')
+            return render_template('admin_register.html', form=form)
+        else:
+            flash('incorrect access key')
     return render_template('admin_register.html', form=form)
 
 #dashboard page
@@ -228,23 +262,64 @@ def dashboard():
 @app.route('/admin_dashboard', methods=['GET', 'POST'])
 @login_required
 def admin_dashboard():
-    return render_template('admin_dashboard.html')
+    print(current_user)
+    result = adminuser.query.with_entities(adminuser.username).filter_by(username=current_user.username).first()
+    print(result)
+    if(result!=None):
+        return render_template('admin_dashboard.html')
+    else:
+        flash("u are not an admin")
+        return render_template('home.html')
 
 #admin key generate
 @app.route('/admin_key_generate', methods=['GET', 'POST'])
 @login_required
 def admin_key_generate():
-    form = AdminKeyForm()
-    print(form)
-    if form.validate_on_submit():
-        newkey = adminkey(key=form.admin_key.data)
-        db.session.add(newkey)
-        db.session.commit()
-        print('key generated')
-        flash('key generated')
-        return redirect(url_for('admin_dashboard'))
+    print(current_user)
+    result = adminuser.query.with_entities(adminuser.username).filter_by(username=current_user.username).first()
+    print(result)
+    if(result!=None):
+        form = AdminKeyForm()
+        print(form)
+        if form.validate_on_submit():
+            newkey = adminkey(key=form.admin_key.data)
+            db.session.add(newkey)
+            db.session.commit()
+            print('key generated')
+            flash('key generated')
+            return redirect(url_for('admin_dashboard'))
+        return render_template('admin_key_generate.html',form=form)
+    else:
+        flash("u are not an admin")
+        return render_template('home.html')
 
-    return render_template('admin_key_generate.html',form=form)
+
+#admin manage group file
+@app.route('/manage_group_files', methods=['GET', 'POST'])
+@login_required
+def manage_group_files():
+    print(current_user)
+    result = adminuser.query.with_entities(adminuser.username).filter_by(username=current_user.username).first()
+    print(result)
+    if(result!=None):
+        form = GroupFilesForm()
+        print(form)
+        if form.validate_on_submit():
+            user = User.query.filter_by(username=form.username.data).first()
+            if user:
+                user = groupfiles(username=form.username.data)
+                db.session.add(user)
+                db.session.commit()
+                return redirect(url_for('manage_group_files'))
+            else:
+                flash("user not valid")
+        #if request.method == 'get':
+        files=groupfiles().query.all()
+        return render_template('manage_group_files.html',form=form,files=files)
+
+    else:
+        flash("u are not an admin")
+        return render_template('home.html')
 
 #logout page
 @app.route('/logout', methods=['GET', 'POST'])
@@ -253,26 +328,37 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 
-
 def file_extension_allowed_files(filename):
     return '.' in filename and \
-           (filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS_TXT or filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS_VIDEO)
+           (filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS_TXT or filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS_VIDEO or filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS_IMAGES)
 
 #fileupload
 @app.route('/fileupload', methods=['POST', 'GET'])
 @login_required
 def fileupload():
+    form = CommentForm()
+    #print(form,"hellllo")
     if request.method == 'POST':
         file = request.files['file']
         if file and file_extension_allowed_files(file.filename):
-            upload = Upload(filename=file.filename, data=file.read())
-            db.session.add(upload)
-            db.session.commit()
-            return f'Uploaded: {file.filename}' 
-            #return 'file uploaded!', 200
+            comment1 = form.comment.data
+            if(len(comment1)<10):
+                comment_encoded = comment1.encode(encoding='utf-8')
+                print(comment1,"hello",comment_encoded)
+                upload = Upload(filename=file.filename.encode(encoding='utf-8'), data=file.read(),comment=comment_encoded)
+                db.session.add(upload)
+                db.session.commit()
+                print("12342")
+                return f'Uploaded: {file.filename}' 
+                #return 'file uploaded!', 200
+            else:
+                flash("comment length to long")
+        else:
+            flash('file extension not allowed')
+        
     if request.method == 'GET':
-        return render_template('fileupload.html')
-    return render_template('fileupload.html')
+        return render_template('fileupload.html',form=form)
+    return render_template('fileupload.html',form=form)
 
 def file_extension_allowed_image(filename):
     return '.' in filename and \
@@ -282,17 +368,28 @@ def file_extension_allowed_image(filename):
 @app.route('/imageupload', methods=['POST', 'GET'])
 @login_required
 def imageupload():
+    form = CommentForm()
+
     if request.method == 'POST':
         file = request.files['file']
-        if file and file_extension_allowed_image(file.filename):
-            upload = Imageupload(imagename=file.filename, data=file.read())
-            db.session.add(upload)
-            db.session.commit()
-            return f'Uploaded: {file.filename}' 
-        #return 'file uploaded!', 200
+        comment1 = form.comment.data
+        if len(comment1)<80:
+            comment_encoded = comment1.encode(encoding='utf-8')
+            print(comment1,"hello",comment_encoded)
+                
+            if file and file_extension_allowed_image(file.filename):
+                upload = Imageupload(imagename=file.filename.encode(encoding='utf-8'), data=file.read(),comment=comment_encoded)
+                db.session.add(upload)
+                db.session.commit()
+                return f'Uploaded: {file.filename}' 
+            else:
+                flash('file extension not allowed')
+            #return 'file uploaded!', 200
+        else:
+            flash("comment length to long")
     if request.method == 'GET':
-        return render_template('imageupload.html')
-    return render_template('imageupload.html')
+        return render_template('imageupload.html',form=form)
+    return render_template('imageupload.html',form=form)
 
 #download files
 @app.route('/download/<upload_id>')
@@ -302,6 +399,35 @@ def download(upload_id):
     temp=upload.filename
     print(temp)
     return send_file(BytesIO(upload.data),download_name=temp,as_attachment=True)
+
+
+#delete images
+@app.route('/delete/<upload_id>', methods=['POST'])
+@login_required
+def delete(upload_id):
+    temp_delete=Imageupload.query.filter_by(id=upload_id).first()
+    db.session.delete(temp_delete)
+    db.session.commit()
+    return render_template("display_all_images.html")
+
+@app.route('/deleteuser/<upload_id>', methods=['POST'])
+@login_required
+def deleteuser(upload_id):
+    temp_delete=groupfiles.query.filter_by(id=upload_id).first()
+    db.session.delete(temp_delete)
+    db.session.commit()
+    return render_template("admin_dashboard.html")
+
+#delete files
+@app.route('/deletefiles/<upload_id>', methods=['POST'])
+@login_required
+def deletefiles(upload_id):
+    temp_delete=Upload.query.filter_by(id=upload_id).first()
+    db.session.delete(temp_delete)
+    db.session.commit()
+    return render_template("display_all_files.html")
+
+
 
 #display images page
 @app.route('/displayimages/<upload_id>')
@@ -314,8 +440,48 @@ def displayimages(upload_id):
 @app.route("/display_all_files")
 @login_required
 def display_all_files():
+    
     files=Upload().query.all()
+   # files=files.decode()
     return render_template("display_all_files.html",files=files)
+    #image = b64encode(upload.data).decode("utf-8")
+    #return render_template("displayimages.html", obj=upload, image=image)
+
+
+#post
+@app.route("/display_all_post")
+@login_required
+def display_all_post():
+    files=post().query.all()
+   # files=files.decode()
+    return render_template("display_all_post.html",files=files)
+
+@app.route("/post_upload" , methods=['POST', 'GET'])
+@login_required
+def post_upload():
+    form = PostCommentForm()
+
+    if request.method == 'POST':
+        comment1 = form.comment.data
+        if len(comment1)<200:
+            comment_encoded = comment1.encode(encoding='utf-8')
+            print(comment1,"hello",comment_encoded)
+            upload = post(comment=comment_encoded)
+            db.session.add(upload)
+            db.session.commit()
+            return render_template('display_all_post.html',form=form)
+        else:
+            flash("comment length to long")
+        return render_template('post_upload.html',form=form)
+    return render_template('post_upload.html',form=form)
+
+@app.route('/deletepost/<upload_id>', methods=['POST'])
+@login_required
+def deletepost(upload_id):
+    temp_delete=post.query.filter_by(id=upload_id).first()
+    db.session.delete(temp_delete)
+    db.session.commit()
+    return render_template("display_all_post.html")
 
 @app.route("/display_all_images")
 @login_required
@@ -337,7 +503,14 @@ def group_images():
 @app.route("/group_files")
 @login_required
 def group_files():
-    return render_template("group_files.html")
+    print(current_user.username)
+    result = groupfiles.query.with_entities(groupfiles.username).filter_by(username=current_user.username).first()
+    print(result)
+    if(result!=None):
+        return render_template("group_files.html")
+    else:
+        flash("u dont have acess to this group")
+        return render_template("dashboard.html")
 
 def get_db_connection():
     conn = sqlite3.connect('database.db')
@@ -346,11 +519,13 @@ def get_db_connection():
 
 @app.errorhandler(HTTP_404_NOT_FOUND)
 def handle_404(e):
-    return jsonify({'error':'the page is not found'}), HTTP_404_NOT_FOUND
+    return render_template("404page.html")
+    #return jsonify({'error':'the page is not found'}), HTTP_404_NOT_FOUND
 
 @app.errorhandler(HTTP_500_INTERNAL_SERVER_ERROR)
 def handle_500(e):
-    return jsonify({'internal server error': 'return back to login page'}), HTTP_500_INTERNAL_SERVER_ERROR
+    return render_template("500page.html")
+    #return jsonify({'internal server error': 'return back to login page'}), HTTP_500_INTERNAL_SERVER_ERROR
 
 if __name__ == "__main__":
     app.run(debug=True)
